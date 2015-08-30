@@ -4,6 +4,9 @@ version = "0.1.0"
 authors = ["Andrew Straw <strawman@astraw.com>"]
 description = "linear algebra operations for nalgebra matrices using LAPACK"
 license = "MIT"
+repository = "https://github.com/astraw/nalgebra-lapack"
+documentation = "https://astraw.github.io/nalgebra-lapack"
+readme = "README.md"
 
 [features]
 default = ["openblas"]
