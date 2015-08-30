@@ -1,5 +1,9 @@
 # nalgebra-lapack: Rust library for linear algebra using nalgebra and LAPACK
 
+## Documentation
+
+Documentation is available [here](https://astraw.github.io/nalgebra-lapack).
+
 ## Cargo features to select lapack provider
 
 Like the [lapack crate](https://crates.io/crates/lapack) from which this
@@ -20,7 +24,7 @@ As tested on Ubuntu 12.04, do this to build the lapack package against
 the system installation of netlib without LAPACKE (note the E) or
 CBLAS:
 
-    sudo apt-get install libblas3gf liblapack3gf
+    sudo apt-get install gfortran libblas3gf liblapack3gf
     CARGO_FEATURE_SYSTEM_NETLIB=1 CARGO_FEATURE_EXCLUDE_LAPACKE=1 CARGO_FEATURE_EXCLUDE_CBLAS=1 cargo build --verbose --no-default-features --features "netlib"
 
 ### Mac OS X
