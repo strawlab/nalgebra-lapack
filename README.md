@@ -2,11 +2,13 @@
 
 ## Cargo features to select lapack provider
 
-Like the [lapack][1] crate from which this behavior is inherited,
-nalgebra-lapack uses cargo features to select which lapack provider (or
-implementation) is used. Command line arguments to cargo are the easiest way to
-do this, and the best provider depends on your particular system. In some cases,
-the providers can be further tuned with environment variables.
+Like the [lapack crate](https://crates.io/crates/lapack) from which this
+behavior is inherited, nalgebra-lapack uses [cargo
+features](http://doc.crates.io/manifest.html#the-[features]-section) to select
+which lapack provider (or implementation) is used. Command line arguments to
+cargo are the easiest way to do this, and the best provider depends on your
+particular system. In some cases, the providers can be further tuned with
+environment variables.
 
 Below are given examples of how to invoke `cargo build` on two different systems
 using two different providers. The `--no-default-features --features "provider"`
