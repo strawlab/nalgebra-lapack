@@ -1,0 +1,18 @@
+language: rust
+sudo: false
+
+addons:
+  apt:
+    packages:
+      - gfortran
+      - libblas3gf
+      - liblapack3gf
+
+env:
+  matrix:
+    - CARGO_FEATURE_SYSTEM_NETLIB=1 CARGO_FEATURE_EXCLUDE_LAPACKE=1 CARGO_FEATURE_EXCLUDE_CBLAS=1
+  global:
+    secure: meVjHPX+dbPrzeAnrEYaML/priI9P1AqaJqsTC8kSfK3Nb0mPW6y1K2BHZnDjDJ034DM4Y2hhtZnkuc/qrRkIH8k0B6qxmWRzEFb1BYMIgjVmsbizZ4/J6Lqbwhla1we0dhsFrim4maZBdhjg3jw0H6ah99ml48+6/FNig3l+bJzu8jzT4xH8OnyZkWzZXRcr33VS8Psag1NJuGd/Rxw+auRa5gMoQSKUvZY0+eHj42DFR95xq5b56x98wIT+FIQtTqAbQJ6kHFf9b/hqGkoemkzkuT2jaM2fgMabKaXy27Ba5YTl4YTkVk5qSZ9bl6NTr6uUnlfEpVWS0SJe4Pbc3vX4u1rUSxON63ETGtzfYjTsG7IdtwzEVzMsHREX1nlt8x9f9NVDcIDkQ95Re+iyrCRFSLMqhkZuGFJ6/egHOsaIUTSGrLDs7K8g4A9SCJeRYfA//aaewhYWV2yEeTVnmMhqKWjlHuffjsF1gAjICfKAix+eZO6KbWnsy0OchWABWldrqYWKr4shGfwJEVmr4vbRHHw2iGtMaGrjVUXOmfK+sTK2Cm6fjFpAS6OkR5lhIJjxWR0YKBDVLffMOM1MRyYaV3Sq4ca8/PMiR97aAQZx9jCe5XJXYy9DL281cbbH27WKm0YdpRxkIsOkq3Wh0WKU0oRqBHPohZeFTAk0Xc=
+
+after_success:
+  - curl http://strawlab.org/travis/after_success.sh | bash
