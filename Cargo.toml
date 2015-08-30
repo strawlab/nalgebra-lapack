@@ -3,6 +3,7 @@ name = "nalgebra-lapack"
 version = "0.1.0"
 authors = ["Andrew Straw <strawman@astraw.com>"]
 description = "linear algebra operations for nalgebra matrices using LAPACK"
+license = "MIT"
 
 [features]
 default = ["openblas"]

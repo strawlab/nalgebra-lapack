@@ -4,6 +4,10 @@
 
 Documentation is available [here](https://astraw.github.io/nalgebra-lapack).
 
+## License
+
+MIT
+
 ## Cargo features to select lapack provider
 
 Like the [lapack crate](https://crates.io/crates/lapack) from which this
