@@ -15,9 +15,9 @@ netlib = ["lapack/netlib"]
 accelerate = ["lapack/accelerate"]
 
 [dependencies]
-nalgebra = "0.2.21"
-num = "0.1.27"
+nalgebra = "0.2"
+num = "0.1"
 
 [dependencies.lapack]
-version = "0.8.0"
+version = "0.8"
 default-features = false
