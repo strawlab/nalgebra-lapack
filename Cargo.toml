@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/astraw/nalgebra-lapack"
 documentation = "https://astraw.github.io/nalgebra-lapack"
 readme = "README.md"
-keywords = [ "linear algebra", "svd", "eigenvalue", "matrix", "lapack" ]
+keywords = [ "linear algebra", "svd", "eigenvalue", "matrix", "lapack", "math" ]
 
 [features]
 default = ["openblas"]
