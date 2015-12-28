@@ -138,7 +138,7 @@ macro_rules! eigensystem_impl(
                 let x: Vec<Complex<$t>> = wr.iter().zip(wi.iter()).map( |(r,i)| {Complex{re:*r,im:*i}} ).collect();
                 let eigen_values = DVec{at:x};
                 let mut result: Vec<Complex<$t>> = Vec::with_capacity(n*n);
-                for i in (0..n) {
+                for i in 0..n {
                     let mut j = 0;
                     while j < n {
                         if eigen_values[j].im == 0.0 {
