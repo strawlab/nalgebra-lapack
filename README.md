@@ -1,10 +1,10 @@
-# nalgebra-lapack [![Build Status](https://travis-ci.org/astraw/nalgebra-lapack.svg?branch=master)](https://travis-ci.org/astraw/nalgebra-lapack)
+# nalgebra-lapack [![Build Status](https://travis-ci.org/strawlab/nalgebra-lapack.svg?branch=master)](https://travis-ci.org/strawlab/nalgebra-lapack)
 
 Rust library for linear algebra using nalgebra and LAPACK
 
 ## Documentation
 
-Documentation is available [here](https://astraw.github.io/nalgebra-lapack).
+Documentation is available [here](https://strawlab.github.io/nalgebra-lapack).
 
 ## License
 
