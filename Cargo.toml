@@ -7,7 +7,7 @@ license = "MIT"
 repository = "https://github.com/strawlab/nalgebra-lapack"
 documentation = "https://strawlab.github.io/nalgebra-lapack"
 readme = "README.md"
-keywords = [ "linear algebra", "svd", "eigenvalue", "matrix", "lapack", "math" ]
+keywords = [ "linear-algebra", "matrix", "lapack", "math" ]
 
 [features]
 default = ["openblas"]
