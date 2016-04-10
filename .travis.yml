@@ -1,12 +1,23 @@
 language: rust
 sudo: false
 
+cache: cargo
+
+rust:
+  - stable
+  - beta
+  - nightly
+
 addons:
   apt:
     packages:
       - gfortran
       - libblas3gf
       - liblapack3gf
+
+matrix:
+  allow_failures:
+    - rust: nightly
 
 env:
   matrix:
