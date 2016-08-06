@@ -14,7 +14,7 @@ use nalgebra_lapack::{HasSVD, HasEigensystem};
 
 fn main() {
     // Create an input matrix
-    let m = na::DMat::from_row_vec(3,5,&[
+    let m = na::DMatrix::from_row_vector(3,5,&[
         -1.01,   0.86,  -4.60,   3.31,  -4.81,
          3.98,   0.53,  -7.04,   5.29,   3.55,
          3.30,   8.26,  -3.89,   8.20,  -1.51]);
@@ -26,7 +26,7 @@ fn main() {
     println!("vt {:?}",vt);
 
     // Create an input matrix
-    let m = na::DMat::from_row_vec(2,2,&[
+    let m = na::DMatrix::from_row_vector(2,2,&[
         2.0, 1.0,
         1.0, 2.0]);
 
@@ -42,7 +42,7 @@ fn main() {
 [2]: https://crates.io/crates/lapack
 */
 
-extern crate nalgebra as na;
+extern crate nalgebra;
 extern crate lapack;
 extern crate num;
 
@@ -50,7 +50,7 @@ use std::error::Error;
 use std::fmt::{self, Display};
 use num::complex::Complex;
 
-use na::{DMat, DVec, Iterable};
+use nalgebra::{DMatrix, DVector, Iterable};
 
 #[derive(Debug)]
 pub struct NalgebraLapackError {
@@ -82,8 +82,8 @@ impl From<String> for NalgebraLapackError {
 
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem<Complex<$t>> for DMat<$t> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVec<Complex<$t>>, DMat<Complex<$t>>)> {
+        impl HasEigensystem<Complex<$t>> for DMatrix<$t> {
+            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
@@ -92,33 +92,33 @@ macro_rules! eigensystem_impl(
                 }
                 let n = self.ncols();
 
-                let lda = n;
-                let ldvl = 1;
+                let lda = n as i32;
+                let ldvl = 1 as i32;
                 let ldvr = n;
 
-                let mut wr: DVec<$t> = DVec::from_elem( n, 0.0);
-                let mut wi: DVec<$t> = DVec::from_elem( n, 0.0);
+                let mut wr: DVector<$t> = DVector::from_element( n, 0.0);
+                let mut wi: DVector<$t> = DVector::from_element( n, 0.0);
 
-                let mut vl: DVec<$t> = DVec::from_elem( ldvl*ldvl, 0.0);
-                let mut vr: DVec<$t> = DVec::from_elem( n*n, 0.0);
+                let mut vl: DVector<$t> = DVector::from_element( (ldvl*ldvl) as usize, 0.0);
+                let mut vr: DVector<$t> = DVector::from_element( n*n, 0.0);
 
                 let mut work = vec![0.0];
-                let mut lwork = -1;
+                let mut lwork = -1 as i32;
                 let mut info = 0;
 
-                $lapack_func(jobvl, jobvr, n, self.as_mut_vec(), lda, wr.as_mut_slice(),
-                    wi.as_mut_slice(), vl.as_mut_slice(), ldvl, vr.as_mut_slice(), ldvr,
+                $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, wr.as_mut(),
+                    wi.as_mut(), vl.as_mut(), ldvl, vr.as_mut(), ldvr as i32,
                     &mut work, lwork, &mut info);
 
                 if info < 0 {
                   return Err(NalgebraLapackError { desc: "illegal argument in eigensystem.".to_owned() } );
                 }
 
-                lwork = work[0] as isize;
+                lwork = work[0] as i32;
                 let mut work = vec![0.0; lwork as usize];
 
-                $lapack_func(jobvl, jobvr, n, self.as_mut_vec(), lda, wr.as_mut_slice(),
-                    wi.as_mut_slice(), vl.as_mut_slice(), ldvl, vr.as_mut_slice(), ldvr,
+                $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, wr.as_mut(),
+                    wi.as_mut(), vl.as_mut(), ldvl, vr.as_mut(), ldvr as i32,
                     &mut work, lwork, &mut info);
 
                 if info < 0 {
@@ -136,7 +136,7 @@ macro_rules! eigensystem_impl(
                 }
 
                 let x: Vec<Complex<$t>> = wr.iter().zip(wi.iter()).map( |(r,i)| {Complex{re:*r,im:*i}} ).collect();
-                let eigen_values = DVec{at:x};
+                let eigen_values = DVector{at:x};
                 let mut result: Vec<Complex<$t>> = Vec::with_capacity(n*n);
                 for i in 0..n {
                     let mut j = 0;
@@ -151,7 +151,7 @@ macro_rules! eigensystem_impl(
                         }
                     }
                 }
-                let right_eigen_vectors = DMat::from_row_vec(n,n,&result);
+                let right_eigen_vectors = DMatrix::from_row_vector(n,n,&result);
                 Ok((eigen_values,right_eigen_vectors))
             }
         }
@@ -167,13 +167,13 @@ pub trait HasEigensystem<T> {
     ///
     /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and largest component real.
     /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this matrix.
-    fn eigensystem(mut self) -> NalgebraLapackResult<(DVec<T>, DMat<T>)>;
+    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<T>, DMatrix<T>)>;
 }
 
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem<Complex<$t>> for DMat<Complex<$t>> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVec<Complex<$t>>, DMat<Complex<$t>>)> {
+        impl HasEigensystem<Complex<$t>> for DMatrix<Complex<$t>> {
+            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
@@ -182,34 +182,34 @@ macro_rules! eigensystem_complex_impl(
                 }
                 let n = self.ncols();
 
-                let lda = n;
-                let ldvl = 1;
-                let ldvr = n;
+                let lda = n as i32;
+                let ldvl = 1 as i32;
+                let ldvr = n as i32;
 
-                let mut w: DVec<Complex<$t>> = DVec::from_elem( n, Complex{re:0.0, im:0.0});
+                let mut w: DVector<Complex<$t>> = DVector::from_element( n, Complex{re:0.0, im:0.0});
 
-                let mut vl: DVec<Complex<$t>> = DVec::from_elem( ldvl*ldvl, Complex{re:0.0, im:0.0});
-                let mut vr: DVec<Complex<$t>> = DVec::from_elem( n*n, Complex{re:0.0, im:0.0});
+                let mut vl: DVector<Complex<$t>> = DVector::from_element( (ldvl*ldvl) as usize, Complex{re:0.0, im:0.0});
+                let mut vr: DVector<Complex<$t>> = DVector::from_element( n*n, Complex{re:0.0, im:0.0});
 
                 let mut work = vec![Complex{re:0.0, im:0.0}];
-                let mut lwork = -1;
+                let mut lwork = -1 as i32;
                 let mut rwork: Vec<$t> = vec![0.0; (2*n) as usize];
 
                 let mut info = 0;
 
-                $lapack_func(jobvl, jobvr, n, self.as_mut_vec(), lda, w.as_mut_slice(),
-                    vl.as_mut_slice(), ldvl, vr.as_mut_slice(), ldvr,
+                $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, w.as_mut(),
+                    vl.as_mut(), ldvl, vr.as_mut(), ldvr,
                     & mut work, lwork, & mut rwork, &mut info);
 
                 if info < 0 {
                   return Err(NalgebraLapackError { desc: "illegal argument in eigensystem.".to_owned() } );
                 }
 
-                lwork = work[0].re as isize;
+                lwork = work[0].re as i32;
                 let mut work = vec![Complex{re:0.0, im:0.0}; lwork as usize];
 
-                $lapack_func(jobvl, jobvr, n, self.as_mut_vec(), lda, w.as_mut_slice(),
-                    vl.as_mut_slice(), ldvl, vr.as_mut_slice(), ldvr,
+                $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, w.as_mut(),
+                    vl.as_mut(), ldvl, vr.as_mut(), ldvr,
                     & mut work, lwork, & mut rwork, &mut info);
 
                 if info < 0 {
@@ -227,7 +227,7 @@ macro_rules! eigensystem_complex_impl(
                 }
 
                 let eigen_values = w;
-                let right_eigen_vectors = DMat::from_row_vec(n,n,&vr.at);
+                let right_eigen_vectors = DMatrix::from_row_vector(n,n,&vr.at);
                 Ok((eigen_values,right_eigen_vectors))
             }
         }
@@ -245,42 +245,42 @@ pub trait HasSVD<T,U> {
     /// * `u` - The left-singular vectors.
     /// * `s` - The singular values.
     /// * `vt` - The right-singular vectors.
-    fn svd(mut self) -> NalgebraLapackResult<(DMat<T>, DVec<U>, DMat<T>)>;
+    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<T>, DVector<U>, DMatrix<T>)>;
 }
 
 macro_rules! svd_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD<$t,$t> for DMat<$t> {
-            fn svd(mut self) -> NalgebraLapackResult<(DMat<$t>, DVec<$t>, DMat<$t>)> {
+        impl HasSVD<$t,$t> for DMatrix<$t> {
+            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<$t>, DVector<$t>, DMatrix<$t>)> {
                 let m = self.nrows();
                 let n = self.ncols();
 
                 let jobu = b'A';
                 let jobvt = b'A';
 
-                let lda = m;
+                let lda = m as i32;
                 let min_mn = if m <= n { m } else {n};
-                let mut s: DVec<$t> = DVec::from_elem( min_mn, 0.0);
+                let mut s: DVector<$t> = DVector::from_element( min_mn, 0.0);
                 let ldu = m;
-                let mut u: DMat<$t> = DMat::new_zeros(ldu, m);
+                let mut u: DMatrix<$t> = DMatrix::new_zeros(ldu, m);
                 let ldvt = n;
-                let mut vt: DMat<$t> = DMat::new_zeros(ldvt, n);
+                let mut vt: DMatrix<$t> = DMatrix::new_zeros(ldvt, n);
                 let mut work = vec![0.0];
-                let mut lwork = -1;
+                let mut lwork = -1 as i32;
                 let mut info = 0;
 
-                $lapack_func(jobu, jobvt, m, n, self.as_mut_vec(), lda, &mut s.as_mut_slice(),
-                               u.as_mut_vec(), ldu, vt.as_mut_vec(),
-                               ldvt, &mut work, lwork, &mut info);
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
+                               u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
+                               ldvt as i32, &mut work, lwork, &mut info);
                 if info < 0 {
                   return Err(NalgebraLapackError { desc: "illegal argument to svd.".to_owned() } );
                 }
 
-                lwork = work[0] as isize;
+                lwork = work[0] as i32;
                 work = vec![0.0; lwork as usize];
 
-                $lapack_func(jobu, jobvt, m, n, self.as_mut_vec(), lda, &mut s.as_mut_slice(),
-                               u.as_mut_vec(), ldu, vt.as_mut_vec(), ldvt, &mut work,
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
+                               u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
                                lwork, &mut info);
 
                 if info < 0 {
@@ -304,39 +304,39 @@ macro_rules! svd_impl(
 
 macro_rules! svd_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD<Complex<$t>,$t> for DMat<Complex<$t>> {
-            fn svd(mut self) -> NalgebraLapackResult<(DMat<Complex<$t>>, DVec<$t>, DMat<Complex<$t>>)> {
+        impl HasSVD<Complex<$t>,$t> for DMatrix<Complex<$t>> {
+            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Complex<$t>>, DVector<$t>, DMatrix<Complex<$t>>)> {
                 let m = self.nrows();
                 let n = self.ncols();
 
                 let jobu = b'A';
                 let jobvt = b'A';
 
-                let lda = m;
+                let lda = m as i32;
                 let min_mn = if m <= n { m } else {n};
-                let mut s: DVec<$t> = DVec::from_elem( min_mn, 0.0);
+                let mut s: DVector<$t> = DVector::from_element( min_mn, 0.0);
                 let ldu = m;
-                let mut u: DMat<Complex<$t>> = DMat::new_zeros(ldu, m);
+                let mut u: DMatrix<Complex<$t>> = DMatrix::new_zeros(ldu, m);
                 let ldvt = n;
-                let mut vt: DMat<Complex<$t>> = DMat::new_zeros(ldvt, n);
+                let mut vt: DMatrix<Complex<$t>> = DMatrix::new_zeros(ldvt, n);
                 let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}];
-                let mut lwork = -1;
+                let mut lwork = -1 as i32;
                 let mut rwork: Vec<$t> = vec![0.0; (5*min_mn as usize)];
                 let mut info = 0;
 
-                $lapack_func(jobu, jobvt, m, n, self.as_mut_vec(), lda, &mut s.as_mut_slice(),
-                             u.as_mut_vec(), ldu, vt.as_mut_vec(), ldvt, &mut work,
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
+                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
                              lwork, &mut rwork, &mut info);
 
                 if info < 0 {
                   return Err(NalgebraLapackError { desc: "illegal argument to svd.".to_owned() } );
                 }
 
-                lwork = work[0].re as isize;
+                lwork = work[0].re as i32;
                 let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}; lwork as usize];
 
-                $lapack_func(jobu, jobvt, m, n, self.as_mut_vec(), lda, &mut s.as_mut_slice(),
-                             u.as_mut_vec(), ldu, vt.as_mut_vec(), ldvt, &mut work,
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
+                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
                              lwork, &mut rwork, &mut info);
 
                 if info < 0 {
@@ -358,12 +358,14 @@ macro_rules! svd_complex_impl(
     );
 );
 
-eigensystem_impl!(f32, lapack::sgeev);
-eigensystem_impl!(f64, lapack::dgeev);
-eigensystem_complex_impl!(f32, lapack::cgeev);
-eigensystem_complex_impl!(f64, lapack::zgeev);
+use lapack::fortran as interface;
 
-svd_impl!(f32, lapack::sgesvd);
-svd_impl!(f64, lapack::dgesvd);
-svd_complex_impl!(f32, lapack::cgesvd);
-svd_complex_impl!(f64, lapack::zgesvd);
+eigensystem_impl!(f32, interface::sgeev);
+eigensystem_impl!(f64, interface::dgeev);
+eigensystem_complex_impl!(f32, interface::cgeev);
+eigensystem_complex_impl!(f64, interface::zgeev);
+
+svd_impl!(f32, interface::sgesvd);
+svd_impl!(f64, interface::dgesvd);
+svd_complex_impl!(f32, interface::cgesvd);
+svd_complex_impl!(f64, interface::zgesvd);

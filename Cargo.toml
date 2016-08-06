@@ -1,6 +1,6 @@
 [package]
 name = "nalgebra-lapack"
-version = "0.1.1"
+version = "0.2.0"
 authors = ["Andrew Straw <strawman@astraw.com>"]
 description = "linear algebra operations for nalgebra matrices using LAPACK"
 license = "MIT"
@@ -16,9 +16,9 @@ netlib = ["lapack/netlib"]
 accelerate = ["lapack/accelerate"]
 
 [dependencies]
-nalgebra = "0.3.1"
+nalgebra = "0.8"
 num = "0.1"
 
 [dependencies.lapack]
-version = "0.8"
+version = "0.11"
 default-features = false
