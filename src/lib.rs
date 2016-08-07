@@ -52,6 +52,45 @@ use num::complex::Complex;
 
 use nalgebra::{DMatrix, DVector, Iterable};
 
+/// A type for which eigenvalues and eigenvectors can be computed.
+pub trait HasEigensystem {
+
+    /// type of the internal representation (e.g. `f32`)
+    type InnerType;
+
+    /// `eigensystem` computes eigenvalues and right eigenvectors
+    ///
+    /// Because the input matrix may be overwritten or destroyed, it is consumed.
+    ///
+    /// # Returns
+    ///
+    /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and largest component real.
+    /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this matrix.
+    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)>;
+}
+
+/// A type for which a singular value decomposition can be computed.
+pub trait HasSVD {
+
+    /// type of the output vector element (e.g. `f32`)
+    type VectorType;
+
+    /// type of the output matrix element (e.g. `f32` or `Complex<f32>`)
+    type MatrixType;
+
+    /// `svd` computes the singular value decomposition (SVD). Returns full
+    /// matrices.
+    ///
+    /// Because the input matrix may be overwritten or destroyed, it is consumed.
+    ///
+    /// # Returns
+    ///
+    /// * `u` - The left-singular vectors.
+    /// * `s` - The singular values.
+    /// * `vt` - The right-singular vectors.
+    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)>;
+}
+
 #[derive(Debug)]
 pub struct NalgebraLapackError {
   pub desc: String,
@@ -62,7 +101,6 @@ pub type NalgebraLapackResult<T> = Result<T, NalgebraLapackError>;
 impl Error for NalgebraLapackError {
   fn description(&self) -> &str { &self.desc }
 }
-
 
 impl Display for NalgebraLapackError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -159,23 +197,6 @@ macro_rules! eigensystem_impl(
     );
 );
 
-/// A type for which eigenvalues and eigenvectors can be computed.
-pub trait HasEigensystem {
-
-    /// type of the internal representation (e.g. `f32`)
-    type InnerType;
-
-    /// `eigensystem` computes eigenvalues and right eigenvectors
-    ///
-    /// Because the input matrix may be overwritten or destroyed, it is consumed.
-    ///
-    /// # Returns
-    ///
-    /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and largest component real.
-    /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this matrix.
-    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)>;
-}
-
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
         impl HasEigensystem for DMatrix<Complex<$t>> {
@@ -240,28 +261,6 @@ macro_rules! eigensystem_complex_impl(
         }
     );
 );
-
-/// A type for which a singular value decomposition can be computed.
-pub trait HasSVD {
-
-    /// type of the output vector element (e.g. `f32`)
-    type VectorType;
-
-    /// type of the output matrix element (e.g. `f32` or `Complex<f32>`)
-    type MatrixType;
-
-    /// `svd` computes the singular value decomposition (SVD). Returns full
-    /// matrices.
-    ///
-    /// Because the input matrix may be overwritten or destroyed, it is consumed.
-    ///
-    /// # Returns
-    ///
-    /// * `u` - The left-singular vectors.
-    /// * `s` - The singular values.
-    /// * `vt` - The right-singular vectors.
-    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)>;
-}
 
 macro_rules! svd_impl(
     ($t: ty, $lapack_func: path) => (
