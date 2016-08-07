@@ -82,8 +82,9 @@ impl From<String> for NalgebraLapackError {
 
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem<Complex<$t>> for DMatrix<$t> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
+        impl HasEigensystem for DMatrix<$t> {
+            type InnerType = Complex<$t>;
+            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
@@ -135,9 +136,9 @@ macro_rules! eigensystem_impl(
                                   ) } );
                 }
 
-                let x: Vec<Complex<$t>> = wr.iter().zip(wi.iter()).map( |(r,i)| {Complex{re:*r,im:*i}} ).collect();
+                let x: Vec<Self::InnerType> = wr.iter().zip(wi.iter()).map( |(r,i)| {Complex{re:*r,im:*i}} ).collect();
                 let eigen_values = DVector{at:x};
-                let mut result: Vec<Complex<$t>> = Vec::with_capacity(n*n);
+                let mut result: Vec<Self::InnerType> = Vec::with_capacity(n*n);
                 for i in 0..n {
                     let mut j = 0;
                     while j < n {
@@ -158,7 +159,12 @@ macro_rules! eigensystem_impl(
     );
 );
 
-pub trait HasEigensystem<T> {
+/// A type for which eigenvalues and eigenvectors can be computed.
+pub trait HasEigensystem {
+
+    /// type of the internal representation (e.g. `f32`)
+    type InnerType;
+
     /// `eigensystem` computes eigenvalues and right eigenvectors
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
@@ -167,13 +173,14 @@ pub trait HasEigensystem<T> {
     ///
     /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and largest component real.
     /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this matrix.
-    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<T>, DMatrix<T>)>;
+    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)>;
 }
 
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem<Complex<$t>> for DMatrix<Complex<$t>> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
+        impl HasEigensystem for DMatrix<Complex<$t>> {
+            type InnerType = Complex<$t>;
+            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
@@ -186,10 +193,10 @@ macro_rules! eigensystem_complex_impl(
                 let ldvl = 1 as i32;
                 let ldvr = n as i32;
 
-                let mut w: DVector<Complex<$t>> = DVector::from_element( n, Complex{re:0.0, im:0.0});
+                let mut w: DVector<Self::InnerType> = DVector::from_element( n, Complex{re:0.0, im:0.0});
 
-                let mut vl: DVector<Complex<$t>> = DVector::from_element( (ldvl*ldvl) as usize, Complex{re:0.0, im:0.0});
-                let mut vr: DVector<Complex<$t>> = DVector::from_element( n*n, Complex{re:0.0, im:0.0});
+                let mut vl: DVector<Self::InnerType> = DVector::from_element( (ldvl*ldvl) as usize, Complex{re:0.0, im:0.0});
+                let mut vr: DVector<Self::InnerType> = DVector::from_element( n*n, Complex{re:0.0, im:0.0});
 
                 let mut work = vec![Complex{re:0.0, im:0.0}];
                 let mut lwork = -1 as i32;
@@ -234,7 +241,15 @@ macro_rules! eigensystem_complex_impl(
     );
 );
 
-pub trait HasSVD<T,U> {
+/// A type for which a singular value decomposition can be computed.
+pub trait HasSVD {
+
+    /// type of the output vector element (e.g. `f32`)
+    type VectorType;
+
+    /// type of the output matrix element (e.g. `f32` or `Complex<f32>`)
+    type MatrixType;
+
     /// `svd` computes the singular value decomposition (SVD). Returns full
     /// matrices.
     ///
@@ -245,13 +260,15 @@ pub trait HasSVD<T,U> {
     /// * `u` - The left-singular vectors.
     /// * `s` - The singular values.
     /// * `vt` - The right-singular vectors.
-    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<T>, DVector<U>, DMatrix<T>)>;
+    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)>;
 }
 
 macro_rules! svd_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD<$t,$t> for DMatrix<$t> {
-            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<$t>, DVector<$t>, DMatrix<$t>)> {
+        impl HasSVD for DMatrix<$t> {
+            type VectorType = $t;
+            type MatrixType = $t;
+            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)> {
                 let m = self.nrows();
                 let n = self.ncols();
 
@@ -260,12 +277,12 @@ macro_rules! svd_impl(
 
                 let lda = m as i32;
                 let min_mn = if m <= n { m } else {n};
-                let mut s: DVector<$t> = DVector::from_element( min_mn, 0.0);
+                let mut s: DVector<Self::VectorType> = DVector::from_element( min_mn, 0.0);
                 let ldu = m;
-                let mut u: DMatrix<$t> = DMatrix::new_zeros(ldu, m);
+                let mut u: DMatrix<Self::MatrixType> = DMatrix::new_zeros(ldu, m);
                 let ldvt = n;
-                let mut vt: DMatrix<$t> = DMatrix::new_zeros(ldvt, n);
-                let mut work = vec![0.0];
+                let mut vt: DMatrix<Self::MatrixType> = DMatrix::new_zeros(ldvt, n);
+                let mut work: Vec<Self::MatrixType> = vec![0.0];
                 let mut lwork = -1 as i32;
                 let mut info = 0;
 
@@ -304,8 +321,10 @@ macro_rules! svd_impl(
 
 macro_rules! svd_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD<Complex<$t>,$t> for DMatrix<Complex<$t>> {
-            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Complex<$t>>, DVector<$t>, DMatrix<Complex<$t>>)> {
+        impl HasSVD for DMatrix<Complex<$t>> {
+            type VectorType = $t;
+            type MatrixType = Complex<$t>;
+            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)> {
                 let m = self.nrows();
                 let n = self.ncols();
 
@@ -314,14 +333,14 @@ macro_rules! svd_complex_impl(
 
                 let lda = m as i32;
                 let min_mn = if m <= n { m } else {n};
-                let mut s: DVector<$t> = DVector::from_element( min_mn, 0.0);
+                let mut s: DVector<Self::VectorType> = DVector::from_element( min_mn, 0.0);
                 let ldu = m;
-                let mut u: DMatrix<Complex<$t>> = DMatrix::new_zeros(ldu, m);
+                let mut u: DMatrix<Self::MatrixType> = DMatrix::new_zeros(ldu, m);
                 let ldvt = n;
-                let mut vt: DMatrix<Complex<$t>> = DMatrix::new_zeros(ldvt, n);
-                let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}];
+                let mut vt: DMatrix<Self::MatrixType> = DMatrix::new_zeros(ldvt, n);
+                let mut work: Vec<Self::MatrixType> = vec![Complex{re:0.0, im:0.0}];
                 let mut lwork = -1 as i32;
-                let mut rwork: Vec<$t> = vec![0.0; (5*min_mn as usize)];
+                let mut rwork: Vec<Self::VectorType> = vec![0.0; (5*min_mn as usize)];
                 let mut info = 0;
 
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
@@ -333,7 +352,7 @@ macro_rules! svd_complex_impl(
                 }
 
                 lwork = work[0].re as i32;
-                let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}; lwork as usize];
+                let mut work: Vec<Self::MatrixType> = vec![Complex{re:0.0, im:0.0}; lwork as usize];
 
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
                              u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
