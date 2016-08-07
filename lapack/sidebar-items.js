@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["c","The C interface (LAPACKE)."],["fortran","The Fortran interface."]],"type":[["c32","A complex number with 32-bit parts."],["c64","A complex number with 64-bit parts."]]});

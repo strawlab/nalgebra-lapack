@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["NalgebraLapackError",""]],"trait":[["HasEigensystem","A type for which eigenvalues and eigenvectors can be computed."],["HasSVD","A type for which a singular value decomposition can be computed."]],"type":[["NalgebraLapackResult",""]]});

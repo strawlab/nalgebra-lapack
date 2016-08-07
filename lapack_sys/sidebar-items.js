@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["c","The C bindings (LAPACKE)."],["fortran","The Fortran bindings."]],"type":[["c_double_complex","A complex number with 64-bit parts."],["c_float_complex","A complex number with 32-bit parts."]]});
