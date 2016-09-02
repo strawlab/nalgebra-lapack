@@ -16,7 +16,7 @@ netlib = ["lapack/netlib"]
 accelerate = ["lapack/accelerate"]
 
 [dependencies]
-nalgebra = "0.8"
+nalgebra = "0.10"
 num = "0.1"
 
 [dependencies.lapack]
