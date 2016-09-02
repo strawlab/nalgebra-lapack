@@ -1,6 +1,6 @@
 # Change Log
 
-## unreleased
+## [0.3.0] - 2016-09-06
 
 * Documentation is hosted at https://docs.rs/nalgebra-lapack/
 * Updated `nalgebra` to 0.10.
