@@ -49,8 +49,9 @@ extern crate num;
 use std::error::Error;
 use std::fmt::{self, Display};
 use num::complex::Complex;
+use num::{Zero, One};
 
-use nalgebra::{DMatrix, DVector, Iterable};
+use nalgebra::{DMatrix, DVector, Iterable, Eye, Row};
 
 /// A type for which eigenvalues and eigenvectors can be computed.
 pub trait HasEigensystem {
@@ -89,6 +90,20 @@ pub trait HasSVD {
     /// * `s` - The singular values.
     /// * `vt` - The right-singular vectors.
     fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)>;
+}
+
+pub trait Solve<N> : Row<DVector<N>> + Sized where N: Copy + Clone + Zero + One {
+    fn solve(self, b: DMatrix<N>) -> NalgebraLapackResult<DMatrix<N>>;
+}
+
+/// A type for which the inverse can be computed.
+pub trait Inverse<N> : HasSolve<N> where N: Copy + Clone + Zero + One {
+    /// `inv` computes the (multiplicative) inverse.
+    fn inv(self) -> NalgebraLapackResult<DMatrix<N>> {
+        let n = self.nrows();
+        let b = DMatrix::new_identity(n);
+        self.solve(b)
+    }
 }
 
 #[derive(Debug)]
@@ -376,6 +391,43 @@ macro_rules! svd_complex_impl(
     );
 );
 
+
+
+macro_rules! solve_impl(
+    ($t: ty, $lapack_func: path) => (
+        impl Solve<$t> for DMatrix<$t> {
+            fn solve(self, mut b: DMatrix<$t>) -> NalgebraLapackResult<DMatrix<$t>> {
+                let mut a = self;
+                let n = a.nrows();
+                let m = a.ncols();
+                if m != n {
+                    return Err(NalgebraLapackError { desc: format!(
+                                  "Square matrix required."
+                                  ) } );
+                }
+
+                let nrhs = n as i32;
+                let lda = n as i32;
+                let ldb = n as i32;
+
+                let mut ipiv: DVector<i32> = DVector::from_element(n, 0);
+                let mut info = 0;
+
+                $lapack_func(n as i32, nrhs, a.as_mut_vector(), lda, ipiv.as_mut(), b.as_mut_vector(), ldb, &mut info);
+
+                if info < 0 {
+                    return Err(NalgebraLapackError { desc: "illegal argument to solve.".to_owned() } );
+                }
+                if info > 0 {
+                    return Err(NalgebraLapackError { desc: "cannot solve singular matrix.".to_owned() } );
+                }
+                Ok(b)
+
+            }
+        }
+    );
+);
+
 use lapack::fortran as interface;
 
 eigensystem_impl!(f32, interface::sgeev);
@@ -387,3 +439,13 @@ svd_impl!(f32, interface::sgesvd);
 svd_impl!(f64, interface::dgesvd);
 svd_complex_impl!(f32, interface::cgesvd);
 svd_complex_impl!(f64, interface::zgesvd);
+
+solve_impl!(f32, interface::sgesv);
+solve_impl!(f64, interface::dgesv);
+solve_impl!(Complex<f32>, interface::cgesv);
+solve_impl!(Complex<f64>, interface::zgesv);
+
+impl Inverse<f32> for DMatrix<f32> {}
+impl Inverse<f64> for DMatrix<f64> {}
+impl Inverse<Complex<f32>> for DMatrix<Complex<f32>> {}
+impl Inverse<Complex<f64>> for DMatrix<Complex<f64>> {}

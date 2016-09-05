@@ -2,9 +2,9 @@ extern crate nalgebra_lapack;
 extern crate nalgebra as na;
 extern crate num;
 
-use nalgebra_lapack::{HasSVD, HasEigensystem};
+use nalgebra_lapack::{HasSVD, HasEigensystem, Inverse};
 
-use na::{DMatrix, DVector, Norm, ColumnSlice, Iterable};
+use na::{DMatrix, DVector, Norm, ColumnSlice, Iterable, Eye};
 use num::complex::Complex;
 
 #[test]
@@ -74,18 +74,6 @@ fn test_svd_recomposition() {
 #[test]
 fn test_svd_recomposition_complex() {
 
-    fn real_only_mat(u: DMatrix<Complex<f64>>) -> DMatrix<f64> {
-        DMatrix::from_column_vector(u.nrows(),
-                                    u.ncols(),
-                                    &u.as_vector()
-                                        .iter()
-                                        .map(|c| {
-                                            assert!(c.im == 0.0);
-                                            c.re
-                                        })
-                                        .collect::<Vec<_>>())
-    }
-
     // The actual matrix contents and size should not matter.
     let mr = DMatrix::from_row_vector(3,
                                       5,
@@ -111,6 +99,18 @@ fn test_svd_recomposition_complex() {
     let actual_m = u * (full_s * vt);
 
     assert!(na::approx_eq(&actual_m, &expected_m));
+}
+
+fn real_only_mat(u: DMatrix<Complex<f64>>) -> DMatrix<f64> {
+    DMatrix::from_column_vector(u.nrows(),
+                                u.ncols(),
+                                &u.as_vector()
+                                    .iter()
+                                    .map(|c| {
+                                        assert!(c.im == 0.0);
+                                        c.re
+                                    })
+                                    .collect::<Vec<_>>())
 }
 
 fn real_only(a: &DVector<Complex<f64>>) -> DVector<f64> {
@@ -168,4 +168,64 @@ fn test_eigenvalues_wikipedia_triangular() {
         panic!("expected value not found");
     }
 
+}
+
+#[test]
+fn test_inverse_2d() {
+    let a = DMatrix::from_row_vector(2, 2, &[1.0, 2.0, 3.0, 4.0]);
+    let a_inv = a.clone().inv().unwrap();
+
+    let eye_actual = a * a_inv;
+    let eye_expected = DMatrix::new_identity(2);
+
+    assert!(na::approx_eq(&eye_actual, &eye_expected));
+}
+
+#[test]
+fn test_inverse_3d() {
+    let a = DMatrix::from_row_vector(3, 3, &[1.0, 2.0, 0.0, 0.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+    let a_inv = a.clone().inv().unwrap();
+
+    let eye_actual = a * a_inv;
+    let eye_expected = DMatrix::new_identity(3);
+
+    assert!(na::approx_eq(&eye_actual, &eye_expected));
+}
+
+#[test]
+fn test_complex_inverse_2d() {
+    let ar = DMatrix::from_row_vector(2, 2, &[1.0, 2.0, 3.0, 4.0]);
+    let a: DMatrix<Complex<f64>> =
+        DMatrix::from_column_vector(ar.nrows(),
+                                    ar.ncols(),
+                                    &ar.as_vector()
+                                        .iter()
+                                        .map(|re| Complex { re: *re, im: 0.0 })
+                                        .collect::<Vec<_>>());
+    let a_inv = a.clone().inv().unwrap();
+
+    let eye_actual_complex = a * a_inv;
+    let eye_actual = real_only_mat(eye_actual_complex);
+    let eye_expected = DMatrix::new_identity(2);
+
+    assert!(na::approx_eq(&eye_actual, &eye_expected));
+}
+
+#[test]
+fn test_complex_inverse_3d() {
+    let ar = DMatrix::from_row_vector(3, 3, &[1.0, 2.0, 0.0, 0.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+    let a: DMatrix<Complex<f64>> =
+        DMatrix::from_column_vector(ar.nrows(),
+                                    ar.ncols(),
+                                    &ar.as_vector()
+                                        .iter()
+                                        .map(|re| Complex { re: *re, im: 0.0 })
+                                        .collect::<Vec<_>>());
+    let a_inv = a.clone().inv().unwrap();
+
+    let eye_actual_complex = a * a_inv;
+    let eye_actual = real_only_mat(eye_actual_complex);
+    let eye_expected = DMatrix::new_identity(3);
+
+    assert!(na::approx_eq(&eye_actual, &eye_expected));
 }
