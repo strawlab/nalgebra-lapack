@@ -12,10 +12,11 @@ fn test_svd_wikipedia() {
 
     // Example from https://en.wikipedia.org/wiki/Singular_value_decomposition#Example
 
-    let m = DMatrix::from_row_vector(4,
-                                     5,
-                                     &[1.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0,
-                                       0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 0.0, 0.0, 0.0]);
+    let m = DMatrix::from_row_vector(4, 5,
+                                     &[1.0, 0.0, 0.0, 0.0, 2.0,
+                                       0.0, 0.0, 3.0, 0.0, 0.0,
+                                       0.0, 0.0, 0.0, 0.0, 0.0,
+                                       0.0, 4.0, 0.0, 0.0, 0.0]);
 
     let (u, s, vt) = m.svd().unwrap();
 
@@ -55,10 +56,10 @@ fn test_svd_wikipedia() {
 #[test]
 fn test_svd_recomposition() {
     // The actual matrix contents and size should not matter.
-    let m = DMatrix::from_row_vector(3,
-                                     5,
-                                     &[-1.01, 0.86, -4.60, 3.31, -4.81, 3.98, 0.53, -7.04, 5.29,
-                                       3.55, 3.30, 8.26, -3.89, 8.20, -1.51]);
+    let m = DMatrix::from_row_vector(3, 5,
+                                     &[-1.01, 0.86, -4.60, 3.31, -4.81,
+                                        3.98, 0.53, -7.04, 5.29,  3.55,
+                                        3.30, 8.26, -3.89, 8.20, -1.51]);
     let expected_m = m.clone(); // copy since original is moved into svd()
     let (u, s, vt) = m.svd().unwrap();
 
@@ -75,10 +76,11 @@ fn test_svd_recomposition() {
 fn test_svd_recomposition_complex() {
 
     // The actual matrix contents and size should not matter.
-    let mr = DMatrix::from_row_vector(3,
-                                      5,
-                                      &[-1.01, 0.86, -4.60, 3.31, -4.81, 3.98, 0.53, -7.04, 5.29,
-                                        3.55, 3.30, 8.26, -3.89, 8.20, -1.51]);
+    let mr = DMatrix::from_row_vector(3, 5,
+                                      &[-1.01, 0.86, -4.60, 3.31, -4.81,
+                                         3.98, 0.53, -7.04, 5.29,  3.55,
+                                         3.30, 8.26, -3.89, 8.20, -1.51]);
+
     let expected_m = mr.clone(); // copy since original is moved into svd()
     let m: DMatrix<Complex<f64>> =
         DMatrix::from_column_vector(mr.nrows(),
@@ -134,7 +136,9 @@ fn test_eigenvalues_wikipedia_triangular() {
     // https://en.wikipedia.org/wiki/Eigenvalues_and_eigenvectors#Triangular_matrices
 
     let n = 3;
-    let mat = DMatrix::from_row_vector(n, n, &[1.0, 0.0, 0.0, 1.0, 2.0, 0.0, 2.0, 3.0, 3.0]);
+    let mat = DMatrix::from_row_vector(n, n, &[1.0, 0.0, 0.0,
+                                               1.0, 2.0, 0.0,
+                                               2.0, 3.0, 3.0]);
     let (eigen_values, eigen_vectors) = mat.eigensystem().unwrap();
 
     assert!(eigen_values.len() == n);
@@ -183,7 +187,10 @@ fn test_inverse_2d() {
 
 #[test]
 fn test_inverse_3d() {
-    let a = DMatrix::from_row_vector(3, 3, &[1.0, 2.0, 0.0, 0.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+    let a = DMatrix::from_row_vector(3, 3,
+        &[1.0, 2.0, 0.0,
+          0.0, 5.0, 6.0,
+          7.0, 8.0, 9.0]);
     let a_inv = a.clone().inv().unwrap();
 
     let eye_actual = a * a_inv;
@@ -194,7 +201,9 @@ fn test_inverse_3d() {
 
 #[test]
 fn test_complex_inverse_2d() {
-    let ar = DMatrix::from_row_vector(2, 2, &[1.0, 2.0, 3.0, 4.0]);
+    let ar = DMatrix::from_row_vector(2, 2,
+        &[1.0, 2.0,
+          3.0, 4.0]);
     let a: DMatrix<Complex<f64>> =
         DMatrix::from_column_vector(ar.nrows(),
                                     ar.ncols(),
@@ -213,7 +222,10 @@ fn test_complex_inverse_2d() {
 
 #[test]
 fn test_complex_inverse_3d() {
-    let ar = DMatrix::from_row_vector(3, 3, &[1.0, 2.0, 0.0, 0.0, 5.0, 6.0, 7.0, 8.0, 9.0]);
+    let ar = DMatrix::from_row_vector(3, 3,
+        &[1.0, 2.0, 0.0,
+          0.0, 5.0, 6.0,
+          7.0, 8.0, 9.0]);
     let a: DMatrix<Complex<f64>> =
         DMatrix::from_column_vector(ar.nrows(),
                                     ar.ncols(),
@@ -232,7 +244,10 @@ fn test_complex_inverse_3d() {
 
 #[test]
 fn test_cholesky() {
-    let a = DMatrix::from_row_vector(3, 3, &[2.0, -1.0, 0.0, -1.0, 2.0, -1.0, 0.0, -1.0, 2.0]);
+    let a = DMatrix::from_row_vector(3, 3,
+        &[2.0, -1.0, 0.0,
+         -1.0, 2.0, -1.0,
+          0.0, -1.0, 2.0]);
     let lo = a.clone().cholesky().unwrap();
     let lot = lo.transpose(); // conjugate transpose for all real is simply the transpose
     let a_recomposed = &lo * &lot;
@@ -241,7 +256,10 @@ fn test_cholesky() {
 
 #[test]
 fn test_cholesky_complex() {
-    let ar = DMatrix::from_row_vector(3, 3, &[2.0, -1.0, 0.0, -1.0, 2.0, -1.0, 0.0, -1.0, 2.0]);
+    let ar = DMatrix::from_row_vector(3, 3,
+        &[2.0, -1.0, 0.0,
+         -1.0, 2.0, -1.0,
+         0.0, -1.0, 2.0]);
     let a: DMatrix<Complex<f64>> =
         DMatrix::from_column_vector(ar.nrows(),
                                     ar.ncols(),

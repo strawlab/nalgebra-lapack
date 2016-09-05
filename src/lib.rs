@@ -55,23 +55,22 @@ use nalgebra::{DMatrix, DVector, Iterable, Eye, Row};
 
 /// A type for which eigenvalues and eigenvectors can be computed.
 pub trait Eigensystem<N> {
-
-    /// `eigensystem` computes eigenvalues and right eigenvectors
+    /// compute eigenvalues and right eigenvectors
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
     ///
     /// # Returns
     ///
-    /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and largest component real.
-    /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this matrix.
+    /// * `eigen_values` - The eigenvalues, normalized to have Euclidean norm equal to 1 and
+    ///   largest component real.
+    /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this
+    ///   matrix.
     fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<N>>, DMatrix<Complex<N>>)>;
 }
 
 /// A type for which a singular value decomposition can be computed.
-pub trait SVD<V,M> {
-
-    /// `svd` computes the singular value decomposition (SVD). Returns full
-    /// matrices.
+pub trait SVD<V, M> {
+    /// compute the singular value decomposition (SVD). Returns full matrices.
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
     ///
@@ -83,12 +82,16 @@ pub trait SVD<V,M> {
     fn svd(mut self) -> NalgebraLapackResult<(DMatrix<M>, DVector<V>, DMatrix<M>)>;
 }
 
-pub trait Solve<N> : Row<DVector<N>> + Sized where N: Copy + Clone + Zero + One {
+pub trait Solve<N>: Row<DVector<N>> + Sized
+    where N: Copy + Clone + Zero + One
+{
     fn solve(self, b: DMatrix<N>) -> NalgebraLapackResult<DMatrix<N>>;
 }
 
 /// A type for which the inverse can be computed.
-pub trait Inverse<N> : HasSolve<N> where N: Copy + Clone + Zero + One {
+pub trait Inverse<N>: Solve<N>
+    where N: Copy + Clone + Zero + One
+{
     /// `inv` computes the (multiplicative) inverse.
     fn inv(self) -> NalgebraLapackResult<DMatrix<N>> {
         let n = self.nrows();
@@ -98,47 +101,50 @@ pub trait Inverse<N> : HasSolve<N> where N: Copy + Clone + Zero + One {
 }
 
 /// A type for which the Cholesky decomposition can be computed.
-pub trait Cholesky<N> where N: Copy {
+pub trait Cholesky<N>
+    where N: Copy
+{
     /// `cholesky` computes the cholesky decomposition of hermitian positive-definite matrices.
     fn cholesky(self) -> NalgebraLapackResult<DMatrix<N>>;
 }
 
 #[derive(Debug)]
 pub struct NalgebraLapackError {
-  pub desc: String,
+    pub desc: String,
 }
 
 pub type NalgebraLapackResult<T> = Result<T, NalgebraLapackError>;
 
 impl Error for NalgebraLapackError {
-  fn description(&self) -> &str { &self.desc }
+    fn description(&self) -> &str {
+        &self.desc
+    }
 }
 
 impl Display for NalgebraLapackError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    Display::fmt(&self.desc, f)
-  }
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        Display::fmt(&self.desc, f)
+    }
 }
 
 impl From<String> for NalgebraLapackError {
-  fn from(err: String) -> NalgebraLapackError {
-    NalgebraLapackError { desc: format!(
-                  "String ({})",
-                  err
-                  ),
+    fn from(err: String) -> NalgebraLapackError {
+        NalgebraLapackError { desc: format!("String ({})", err) }
     }
-  }
 }
 
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
         impl Eigensystem<$t> for DMatrix<$t> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
+            fn eigensystem(mut self) ->
+            NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
                 if self.ncols() != self.nrows() {
-                    return Err(NalgebraLapackError { desc: "argument to eigen must be square.".to_owned() } );
+                    return Err(NalgebraLapackError {
+                         desc: "argument to eigen must be square.".to_owned()
+                     } );
                 }
                 let n = self.ncols();
 
@@ -161,7 +167,9 @@ macro_rules! eigensystem_impl(
                     &mut work, lwork, &mut info);
 
                 if info < 0 {
-                  return Err(NalgebraLapackError { desc: "illegal argument in eigensystem.".to_owned() } );
+                  return Err(NalgebraLapackError {
+                      desc: "illegal argument in eigensystem.".to_owned()
+                  });
                 }
 
                 lwork = work[0] as i32;
@@ -178,14 +186,18 @@ macro_rules! eigensystem_impl(
                                   ) } );
                 }
                 if info > 0 {
-                    // TODO: should figure out how to return the correct eigenvalues.
+// TODO: should figure out how to return the correct eigenvalues.
                     return Err(NalgebraLapackError { desc: format!(
-                                  "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
+                      "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
                                   -info
                                   ) } );
                 }
 
-                let x: Vec<Complex<$t>> = wr.iter().zip(wi.iter()).map( |(r,i)| {Complex{re:*r,im:*i}} ).collect();
+                let x: Vec<Complex<$t>> = wr
+                    .iter()
+                    .zip(wi.iter())
+                    .map( |(r,i)| {Complex{re:*r,im:*i}} )
+                    .collect();
                 let eigen_values = DVector{at:x};
                 let mut result: Vec<Complex<$t>> = Vec::with_capacity(n*n);
                 for i in 0..n {
@@ -211,12 +223,15 @@ macro_rules! eigensystem_impl(
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
         impl Eigensystem<$t> for DMatrix<Complex<$t>> {
-            fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
+            fn eigensystem(mut self)
+                -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
                 let jobvr = b'V';
 
                 if self.ncols() != self.nrows() {
-                    return Err(NalgebraLapackError { desc: "argument to eigen must be square.".to_owned() } );
+                    return Err(NalgebraLapackError {
+                        desc: "argument to eigen must be square.".to_owned()
+                    } );
                 }
                 let n = self.ncols();
 
@@ -224,10 +239,13 @@ macro_rules! eigensystem_complex_impl(
                 let ldvl = 1 as i32;
                 let ldvr = n as i32;
 
-                let mut w: DVector<Complex<$t>> = DVector::from_element( n, Complex{re:0.0, im:0.0});
+                let mut w: DVector<Complex<$t>> = DVector::from_element(
+                    n, Complex{re:0.0, im:0.0});
 
-                let mut vl: DVector<Complex<$t>> = DVector::from_element( (ldvl*ldvl) as usize, Complex{re:0.0, im:0.0});
-                let mut vr: DVector<Complex<$t>> = DVector::from_element( n*n, Complex{re:0.0, im:0.0});
+                let mut vl: DVector<Complex<$t>> = DVector::from_element(
+                    (ldvl*ldvl) as usize, Complex{re:0.0, im:0.0});
+                let mut vr: DVector<Complex<$t>> = DVector::from_element(
+                    n*n, Complex{re:0.0, im:0.0});
 
                 let mut work = vec![Complex{re:0.0, im:0.0}];
                 let mut lwork = -1 as i32;
@@ -240,7 +258,9 @@ macro_rules! eigensystem_complex_impl(
                     & mut work, lwork, & mut rwork, &mut info);
 
                 if info < 0 {
-                  return Err(NalgebraLapackError { desc: "illegal argument in eigensystem.".to_owned() } );
+                  return Err(NalgebraLapackError {
+                      desc: "illegal argument in eigensystem.".to_owned()
+                  });
                 }
 
                 lwork = work[0].re as i32;
@@ -257,11 +277,11 @@ macro_rules! eigensystem_complex_impl(
                                   ) } );
                 }
                 if info > 0 {
-                    // TODO: should figure out how to return the correct eigenvalues.
+// TODO: should figure out how to return the correct eigenvalues.
                     return Err(NalgebraLapackError { desc: format!(
-                                  "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
-                                  -info
-                                  ) } );
+                      "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
+                      -info
+                      )});
                 }
 
                 let eigen_values = w;
@@ -293,9 +313,9 @@ macro_rules! svd_impl(
                 let mut lwork = -1 as i32;
                 let mut info = 0;
 
-                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
-                               u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
-                               ldvt as i32, &mut work, lwork, &mut info);
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
+                    &mut s.as_mut(), u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
+                    ldvt as i32, &mut work, lwork, &mut info);
                 if info < 0 {
                   return Err(NalgebraLapackError { desc: "illegal argument to svd.".to_owned() } );
                 }
@@ -303,9 +323,9 @@ macro_rules! svd_impl(
                 lwork = work[0] as i32;
                 work = vec![0.0; lwork as usize];
 
-                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
-                               u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
-                               lwork, &mut info);
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
+                    &mut s.as_mut(), u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
+                    ldvt as i32, &mut work, lwork, &mut info);
 
                 if info < 0 {
                     return Err(NalgebraLapackError { desc: format!(
@@ -329,7 +349,8 @@ macro_rules! svd_impl(
 macro_rules! svd_complex_impl(
     ($t: ty, $lapack_func: path) => (
         impl SVD<$t,Complex<$t>> for DMatrix<Complex<$t>> {
-            fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Complex<$t>>, DVector<$t>, DMatrix<Complex<$t>>)> {
+            fn svd(mut self)
+                -> NalgebraLapackResult<(DMatrix<Complex<$t>>, DVector<$t>, DMatrix<Complex<$t>>)> {
                 let m = self.nrows();
                 let n = self.ncols();
 
@@ -348,8 +369,10 @@ macro_rules! svd_complex_impl(
                 let mut rwork: Vec<$t> = vec![0.0; (5*min_mn as usize)];
                 let mut info = 0;
 
-                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
-                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
+                &mut s.as_mut(),
+                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32,
+                             &mut work,
                              lwork, &mut rwork, &mut info);
 
                 if info < 0 {
@@ -359,8 +382,10 @@ macro_rules! svd_complex_impl(
                 lwork = work[0].re as i32;
                 let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}; lwork as usize];
 
-                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda, &mut s.as_mut(),
-                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32, &mut work,
+                $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
+                &mut s.as_mut(),
+                             u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32,
+                             &mut work,
                              lwork, &mut rwork, &mut info);
 
                 if info < 0 {
@@ -402,13 +427,18 @@ macro_rules! solve_impl(
                 let mut ipiv: DVector<i32> = DVector::from_element(n, 0);
                 let mut info = 0;
 
-                $lapack_func(n as i32, nrhs, a.as_mut_vector(), lda, ipiv.as_mut(), b.as_mut_vector(), ldb, &mut info);
+                $lapack_func(n as i32, nrhs, a.as_mut_vector(), lda, ipiv.as_mut(),
+                    b.as_mut_vector(), ldb, &mut info);
 
                 if info < 0 {
-                    return Err(NalgebraLapackError { desc: "illegal argument to solve.".to_owned() } );
+                    return Err(NalgebraLapackError {
+                        desc: "illegal argument to solve.".to_owned()
+                    } );
                 }
                 if info > 0 {
-                    return Err(NalgebraLapackError { desc: "cannot solve singular matrix.".to_owned() } );
+                    return Err(NalgebraLapackError {
+                        desc: "cannot solve singular matrix.".to_owned()
+                    } );
                 }
                 Ok(b)
 
@@ -430,15 +460,19 @@ macro_rules! cholesky_impl(
                 $lapack_func(uplo, n, a.as_mut_vector(), lda, &mut info);
 
                 if info < 0 {
-                    return Err(NalgebraLapackError { desc: "illegal argument to cholesky.".to_owned() } );
+                    return Err(NalgebraLapackError {
+                        desc: "illegal argument to cholesky.".to_owned()
+                    } );
                 }
                 if info > 0 {
                     return Err(NalgebraLapackError {
-                        desc: "factorization could not be completed (matrix not positive definite?).".to_owned()
+                        desc: "factorization could not be completed
+                        (matrix not positive definite?).".to_owned()
                     });
                 }
 
-                // zero the upper-triangular part
+// zero the upper-triangular part
+
                 for i in 0..a.nrows() {
                     for j in 0..a.ncols() {
                         if j>i {
