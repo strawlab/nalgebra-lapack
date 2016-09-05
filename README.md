@@ -1,10 +1,10 @@
-# nalgebra-lapack [![Version][version-img]][version-url] [![Status][status-img]][status-url]
+# nalgebra-lapack [![Version][version-img]][version-url] [![Status][status-img]][status-url] [![Doc][doc-img]][doc-url]
 
 Rust library for linear algebra using nalgebra and LAPACK
 
 ## Documentation
 
-Documentation is available [here](https://strawlab.github.io/nalgebra-lapack).
+Documentation is available [here](https://docs.rs/nalgebra-lapack/).
 
 ## License
 
@@ -49,3 +49,5 @@ On Mac OS X, do this to use Apple's Accelerate framework:
 [version-url]: https://crates.io/crates/nalgebra-lapack
 [status-img]: https://travis-ci.org/strawlab/nalgebra-lapack.svg?branch=master
 [status-url]: https://travis-ci.org/strawlab/nalgebra-lapack
+[doc-img]: https://docs.rs/nalgebra-lapack/badge.svg
+[doc-url]: https://docs.rs/nalgebra-lapack/

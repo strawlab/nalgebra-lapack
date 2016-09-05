@@ -2,6 +2,7 @@
 
 ## unreleased
 
+* Documentation is hosted at https://docs.rs/nalgebra-lapack/
 * Updated `nalgebra` to 0.10.
 * Rename traits `HasSVD` to `SVD` and `HasEigensystem` to `Eigensystem`.
 * Added `Solve` trait for solving a linear matrix equation.
