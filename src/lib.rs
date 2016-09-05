@@ -10,7 +10,7 @@ implemented.
 extern crate nalgebra_lapack;
 extern crate nalgebra as na;
 
-use nalgebra_lapack::{HasSVD, HasEigensystem};
+use nalgebra_lapack::{SVD, Eigensystem};
 
 fn main() {
     // Create an input matrix
@@ -54,7 +54,7 @@ use num::{Zero, One};
 use nalgebra::{DMatrix, DVector, Iterable, Eye, Row};
 
 /// A type for which eigenvalues and eigenvectors can be computed.
-pub trait HasEigensystem {
+pub trait Eigensystem {
 
     /// type of the internal representation (e.g. `f32`)
     type InnerType;
@@ -71,7 +71,7 @@ pub trait HasEigensystem {
 }
 
 /// A type for which a singular value decomposition can be computed.
-pub trait HasSVD {
+pub trait SVD {
 
     /// type of the output vector element (e.g. `f32`)
     type VectorType;
@@ -141,7 +141,7 @@ impl From<String> for NalgebraLapackError {
 
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem for DMatrix<$t> {
+        impl Eigensystem for DMatrix<$t> {
             type InnerType = Complex<$t>;
             fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)> {
                 let jobvl = b'N';
@@ -220,7 +220,7 @@ macro_rules! eigensystem_impl(
 
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasEigensystem for DMatrix<Complex<$t>> {
+        impl Eigensystem for DMatrix<Complex<$t>> {
             type InnerType = Complex<$t>;
             fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Self::InnerType>, DMatrix<Self::InnerType>)> {
                 let jobvl = b'N';
@@ -285,7 +285,7 @@ macro_rules! eigensystem_complex_impl(
 
 macro_rules! svd_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD for DMatrix<$t> {
+        impl SVD for DMatrix<$t> {
             type VectorType = $t;
             type MatrixType = $t;
             fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)> {
@@ -341,7 +341,7 @@ macro_rules! svd_impl(
 
 macro_rules! svd_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl HasSVD for DMatrix<Complex<$t>> {
+        impl SVD for DMatrix<Complex<$t>> {
             type VectorType = $t;
             type MatrixType = Complex<$t>;
             fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::MatrixType>, DVector<Self::VectorType>, DMatrix<Self::MatrixType>)> {

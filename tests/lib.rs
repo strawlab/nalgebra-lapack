@@ -2,7 +2,7 @@ extern crate nalgebra_lapack;
 extern crate nalgebra as na;
 extern crate num;
 
-use nalgebra_lapack::{HasSVD, HasEigensystem, Inverse, Cholesky};
+use nalgebra_lapack::{SVD, Eigensystem, Inverse, Cholesky};
 
 use na::{DMatrix, DVector, Norm, ColumnSlice, Iterable, Eye, Transpose};
 use num::complex::Complex;
