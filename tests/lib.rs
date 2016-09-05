@@ -176,7 +176,9 @@ fn test_eigenvalues_wikipedia_triangular() {
 
 #[test]
 fn test_inverse_2d() {
-    let a = DMatrix::from_row_vector(2, 2, &[1.0, 2.0, 3.0, 4.0]);
+    let a = DMatrix::from_row_vector(2, 2,
+        &[1.0, 2.0,
+          3.0, 4.0]);
     let a_inv = a.clone().inv().unwrap();
 
     let eye_actual = a * a_inv;
