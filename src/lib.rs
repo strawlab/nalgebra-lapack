@@ -1,40 +1,50 @@
 /*!
 linear algebra operations for [nalgebra][1] matrices using [LAPACK][2].
 
-Functions to compute the singular value decomposition (SVD) and eigensystem are
-implemented.
-
 # Examples
 
 ```rust
 extern crate nalgebra_lapack;
 extern crate nalgebra as na;
 
-use nalgebra_lapack::{SVD, Eigensystem};
+use nalgebra_lapack::{SVD, Eigensystem, Inverse, Solve};
+use na::Eye;
 
 fn main() {
-    // Create an input matrix
-    let m = na::DMatrix::from_row_vector(3,5,&[
-        -1.01,   0.86,  -4.60,   3.31,  -4.81,
-         3.98,   0.53,  -7.04,   5.29,   3.55,
-         3.30,   8.26,  -3.89,   8.20,  -1.51]);
-
-    // Now perform SVD
+    // SVD -----------------------------------
+    let m = na::DMatrix::from_row_vector(3, 5,
+        &[-1.01,   0.86,  -4.60,   3.31,  -4.81,
+           3.98,   0.53,  -7.04,   5.29,   3.55,
+           3.30,   8.26,  -3.89,   8.20,  -1.51]);
     let (u,s,vt) = m.svd().unwrap();
-    println!("u {:?}",u);
-    println!("s {:?}",s);
-    println!("vt {:?}",vt);
+    println!("u {:?}", u);
+    println!("s {:?}", s);
+    println!("vt {:?}", vt);
 
-    // Create an input matrix
-    let m = na::DMatrix::from_row_vector(2,2,&[
-        2.0, 1.0,
-        1.0, 2.0]);
-
-    // Now get the eigensystem
+    // Eigensystem ---------------------------
+    let m = na::DMatrix::from_row_vector(2, 2,
+        &[2.0, 1.0,
+          1.0, 2.0]);
     let (vals, vecs) = m.eigensystem().unwrap();
-    println!("eigenvalues {:?}",vals);
-    println!("eigenvectors {:?}",vecs);
+    println!("eigenvalues {:?}", vals);
+    println!("eigenvectors {:?}", vecs);
 
+    // Invert matrix -------------------------
+    let a = na::DMatrix::from_row_vector(2, 2,
+        &[1.0, 2.0,
+          3.0, 4.0]);
+    let a_inv = a.inv().unwrap();
+    println!("a_inv {:?}", a_inv);
+
+    // Solve ---------------------------------
+    // invert matrix `a` by solving solution to `ax=1`
+    let a = na::DMatrix::from_row_vector(2, 2,
+        &[1.0, 2.0,
+          3.0, 4.0]);
+    let n = a.nrows();
+    let b = na::DMatrix::new_identity(n);
+    let a_inv = a.solve(b);
+    println!("a_inv {:?}", a_inv);
 }
 ```
 
@@ -82,9 +92,23 @@ pub trait SVD<V, M> {
     fn svd(mut self) -> NalgebraLapackResult<(DMatrix<M>, DVector<V>, DMatrix<M>)>;
 }
 
+/// A type for solving a linear matrix equation.
 pub trait Solve<N>: Row<DVector<N>> + Sized
     where N: Copy + Clone + Zero + One
 {
+    /// solve a linear matrix equation.
+    ///
+    /// Given the equation `ax=b` where `a` and `b` are known, find  matrix `x`.
+    ///
+    /// Because the input matrix may be overwritten or destroyed, it is consumed.
+    ///
+    /// # Arguments
+    ///
+    /// * `b` - The known matrix.
+    ///
+    /// # Returns
+    ///
+    /// * `x` - The solution to the linear equation `ax=b`.
     fn solve(self, b: DMatrix<N>) -> NalgebraLapackResult<DMatrix<N>>;
 }
 
@@ -92,7 +116,13 @@ pub trait Solve<N>: Row<DVector<N>> + Sized
 pub trait Inverse<N>: Solve<N>
     where N: Copy + Clone + Zero + One
 {
-    /// `inv` computes the (multiplicative) inverse.
+    /// compute the (multiplicative) inverse.
+    ///
+    /// Because the input matrix may be overwritten or destroyed, it is consumed.
+    ///
+    /// # Returns
+    ///
+    /// * `inverse` - The inverted matrix.
     fn inv(self) -> NalgebraLapackResult<DMatrix<N>> {
         let n = self.nrows();
         let b = DMatrix::new_identity(n);
@@ -104,7 +134,13 @@ pub trait Inverse<N>: Solve<N>
 pub trait Cholesky<N>
     where N: Copy
 {
-    /// `cholesky` computes the cholesky decomposition of hermitian positive-definite matrices.
+    /// computes the cholesky decomposition of a Hermitian positive-definite matrix.
+    ///
+    /// Because the input matrix may be overwritten or destroyed, it is consumed.
+    ///
+    /// # Returns
+    ///
+    /// * `lower_triangular` - The lower triangular part of the decomposed matrix.
     fn cholesky(self) -> NalgebraLapackResult<DMatrix<N>>;
 }
 
