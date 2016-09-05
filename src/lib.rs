@@ -106,6 +106,12 @@ pub trait Inverse<N> : HasSolve<N> where N: Copy + Clone + Zero + One {
     }
 }
 
+/// A type for which the Cholesky decomposition can be computed.
+pub trait Cholesky<N> where N: Copy {
+    /// `cholesky` computes the cholesky decomposition of hermitian positive-definite matrices.
+    fn cholesky(self) -> NalgebraLapackResult<DMatrix<N>>;
+}
+
 #[derive(Debug)]
 pub struct NalgebraLapackError {
   pub desc: String,
@@ -391,8 +397,6 @@ macro_rules! svd_complex_impl(
     );
 );
 
-
-
 macro_rules! solve_impl(
     ($t: ty, $lapack_func: path) => (
         impl Solve<$t> for DMatrix<$t> {
@@ -428,6 +432,42 @@ macro_rules! solve_impl(
     );
 );
 
+macro_rules! cholesky_impl(
+    ($t: ty, $lapack_func: path) => (
+        impl Cholesky<$t> for DMatrix<$t> {
+            fn cholesky(self) -> NalgebraLapackResult<DMatrix<$t>> {
+                let uplo = b'L';
+                let mut a = self;
+                let n = a.nrows() as i32;
+                let lda = n;
+                let mut info = 0;
+
+                $lapack_func(uplo, n, a.as_mut_vector(), lda, &mut info);
+
+                if info < 0 {
+                    return Err(NalgebraLapackError { desc: "illegal argument to cholesky.".to_owned() } );
+                }
+                if info > 0 {
+                    return Err(NalgebraLapackError {
+                        desc: "factorization could not be completed (matrix not positive definite?).".to_owned()
+                    });
+                }
+
+                // zero the upper-triangular part
+                for i in 0..a.nrows() {
+                    for j in 0..a.ncols() {
+                        if j>i {
+                            a[(i,j)] = Zero::zero();
+                        }
+                    }
+                }
+
+                Ok(a)
+            }
+        }
+    );
+);
+
 use lapack::fortran as interface;
 
 eigensystem_impl!(f32, interface::sgeev);
@@ -449,3 +489,8 @@ impl Inverse<f32> for DMatrix<f32> {}
 impl Inverse<f64> for DMatrix<f64> {}
 impl Inverse<Complex<f32>> for DMatrix<Complex<f32>> {}
 impl Inverse<Complex<f64>> for DMatrix<Complex<f64>> {}
+
+cholesky_impl!(f32, interface::spotrf);
+cholesky_impl!(f64, interface::dpotrf);
+cholesky_impl!(Complex<f32>, interface::cpotrf);
+cholesky_impl!(Complex<f64>, interface::zpotrf);

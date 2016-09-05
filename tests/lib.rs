@@ -2,9 +2,9 @@ extern crate nalgebra_lapack;
 extern crate nalgebra as na;
 extern crate num;
 
-use nalgebra_lapack::{HasSVD, HasEigensystem, Inverse};
+use nalgebra_lapack::{HasSVD, HasEigensystem, Inverse, Cholesky};
 
-use na::{DMatrix, DVector, Norm, ColumnSlice, Iterable, Eye};
+use na::{DMatrix, DVector, Norm, ColumnSlice, Iterable, Eye, Transpose};
 use num::complex::Complex;
 
 #[test]
@@ -228,4 +228,30 @@ fn test_complex_inverse_3d() {
     let eye_expected = DMatrix::new_identity(3);
 
     assert!(na::approx_eq(&eye_actual, &eye_expected));
+}
+
+#[test]
+fn test_cholesky() {
+    let a = DMatrix::from_row_vector(3, 3, &[2.0, -1.0, 0.0, -1.0, 2.0, -1.0, 0.0, -1.0, 2.0]);
+    let lo = a.clone().cholesky().unwrap();
+    let lot = lo.transpose(); // conjugate transpose for all real is simply the transpose
+    let a_recomposed = &lo * &lot;
+    assert!(na::approx_eq(&a, &a_recomposed));
+}
+
+#[test]
+fn test_cholesky_complex() {
+    let ar = DMatrix::from_row_vector(3, 3, &[2.0, -1.0, 0.0, -1.0, 2.0, -1.0, 0.0, -1.0, 2.0]);
+    let a: DMatrix<Complex<f64>> =
+        DMatrix::from_column_vector(ar.nrows(),
+                                    ar.ncols(),
+                                    &ar.as_vector()
+                                        .iter()
+                                        .map(|re| Complex { re: *re, im: 0.0 })
+                                        .collect::<Vec<_>>());
+    let lo = a.clone().cholesky().unwrap();
+    let lot = lo.transpose(); // conjugate transpose for all real is simply the transpose
+    let a_recomposed_complex = &lo * &lot;
+    let a_recomposed = real_only_mat(a_recomposed_complex);
+    assert!(na::approx_eq(&ar, &a_recomposed));
 }
