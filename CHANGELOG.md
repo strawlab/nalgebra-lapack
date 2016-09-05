@@ -7,3 +7,5 @@
 * Added `Solve` trait for solving a linear matrix equation.
 * Added `Inverse` for computing the multiplicative inverse of a matrix.
 * Added `Cholesky` for decomposing a positive-definite matrix.
+* The `Eigensystem` and `SVD` traits are now generic over types. The
+  associated types have been removed.
