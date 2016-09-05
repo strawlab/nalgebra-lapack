@@ -254,6 +254,17 @@ fn test_cholesky() {
     assert!(na::approx_eq(&a, &a_recomposed));
 }
 
+fn conjugate_transpose(a: &DMatrix<Complex<f64>>) -> DMatrix<Complex<f64>> {
+    let mut b = DMatrix::new_zeros(a.ncols(), a.nrows());
+    for i in 0..a.nrows() {
+        for j in 0..a.ncols() {
+            let c = a[(i,j)];
+            b[(j,i)] = Complex {re: c.re, im: -c.im};
+        }
+    }
+    b
+}
+
 #[test]
 fn test_cholesky_complex() {
     let ar = DMatrix::from_row_vector(3, 3,
@@ -268,7 +279,7 @@ fn test_cholesky_complex() {
                                         .map(|re| Complex { re: *re, im: 0.0 })
                                         .collect::<Vec<_>>());
     let lo = a.clone().cholesky().unwrap();
-    let lot = lo.transpose(); // conjugate transpose for all real is simply the transpose
+    let lot = conjugate_transpose(&lo);
     let a_recomposed_complex = &lo * &lot;
     let a_recomposed = real_only_mat(a_recomposed_complex);
     assert!(na::approx_eq(&ar, &a_recomposed));
