@@ -55,13 +55,19 @@ fn main() {
 extern crate nalgebra;
 extern crate lapack;
 extern crate num;
+#[macro_use]
+extern crate error_chain;
 
-use std::error::Error;
-use std::fmt::{self, Display};
+pub mod errors;
+
+use errors::{Error, ErrorKind};
 use num::complex::Complex;
 use num::Zero;
 
 use nalgebra::{DMatrix, DVector, Iterable, Eye};
+
+pub use errors::Error as NalgebraLapackError;
+pub use errors::Result as NalgebraLapackResult;
 
 /// A type for which eigenvalues and eigenvectors can be computed.
 pub trait Eigensystem {
@@ -143,39 +149,12 @@ pub trait Cholesky
     fn cholesky(self) -> NalgebraLapackResult<DMatrix<Self::N>>;
 }
 
-#[derive(Debug)]
-pub struct NalgebraLapackError {
-    pub desc: String,
-}
-
-pub type NalgebraLapackResult<T> = Result<T, NalgebraLapackError>;
-
-impl Error for NalgebraLapackError {
-    fn description(&self) -> &str {
-        &self.desc
-    }
-}
-
-impl Display for NalgebraLapackError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        Display::fmt(&self.desc, f)
-    }
-}
-
-impl From<String> for NalgebraLapackError {
-    fn from(err: String) -> NalgebraLapackError {
-        NalgebraLapackError { desc: format!("String ({})", err) }
-    }
-}
-
 macro_rules! check_info(
     ($info: expr) => (
         if $info < 0 {
-            return Err(NalgebraLapackError { desc: format!(
-                          "illegal argument to lapack {}",-$info)});
+            return Err(Error::from(ErrorKind::LapackIllegalArgument(-$info)));
         } else if $info > 0 {
-            return Err(NalgebraLapackError { desc: format!(
-                          "lapack failure {}", $info)});
+            return Err(Error::from(ErrorKind::LapackFailure($info)));
         }
     );
 );
@@ -190,9 +169,7 @@ macro_rules! eigensystem_impl(
                 let jobvr = b'V';
 
                 if self.ncols() != self.nrows() {
-                    return Err(NalgebraLapackError {
-                         desc: "argument to eigen must be square.".to_owned()
-                     } );
+                    return Err(Error::from(ErrorKind::MatrixNotSquare));
                 }
                 let n = self.ncols();
 
@@ -222,6 +199,8 @@ macro_rules! eigensystem_impl(
                 $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, wr.as_mut(),
                     wi.as_mut(), vl.as_mut(), ldvl, vr.as_mut(), ldvr as i32,
                     &mut work, lwork, &mut info);
+
+                // TODO: should figure out how to return the correct eigenvalues.
                 check_info!(info);
 
                 let x: Vec<Complex<$t>> = wr
@@ -262,9 +241,7 @@ macro_rules! eigensystem_complex_impl(
                 let jobvr = b'V';
 
                 if self.ncols() != self.nrows() {
-                    return Err(NalgebraLapackError {
-                        desc: "argument to eigen must be square.".to_owned()
-                    } );
+                    return Err(Error::from(ErrorKind::MatrixNotSquare));
                 }
                 let n = self.ncols();
 
@@ -406,9 +383,7 @@ macro_rules! solve_impl(
                 let n = a.nrows();
                 let m = a.ncols();
                 if m != n {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "Square matrix required."
-                                  ) } );
+                    return Err(Error::from(ErrorKind::MatrixNotSquare));
                 }
 
                 let nrhs = n as i32;

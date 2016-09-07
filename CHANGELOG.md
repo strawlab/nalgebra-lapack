@@ -8,6 +8,7 @@
   described in [the associated type
   RFC](https://github.com/rust-lang/rfcs/blob/master/text/0195-associated-items.md).
 * Implemented `check_info!` macro to check all LAPACK calls.
+* Implemented error handling with [error_chain](https://crates.io/crates/error-chain).
 
 ## [0.3.0] - 2016-09-06
 
