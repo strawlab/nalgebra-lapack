@@ -7,6 +7,7 @@
   associated types used as output type parameters (not input type parameters) as
   described in [the associated type
   RFC](https://github.com/rust-lang/rfcs/blob/master/text/0195-associated-items.md).
+* Implemented `check_info!` macro to check all LAPACK calls.
 
 ## [0.3.0] - 2016-09-06
 

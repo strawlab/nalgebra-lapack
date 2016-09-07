@@ -168,6 +168,18 @@ impl From<String> for NalgebraLapackError {
     }
 }
 
+macro_rules! check_info(
+    ($info: expr) => (
+        if $info < 0 {
+            return Err(NalgebraLapackError { desc: format!(
+                          "illegal argument to lapack {}",-$info)});
+        } else if $info > 0 {
+            return Err(NalgebraLapackError { desc: format!(
+                          "lapack failure {}", $info)});
+        }
+    );
+);
+
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
         impl Eigensystem for DMatrix<$t> {
@@ -202,11 +214,7 @@ macro_rules! eigensystem_impl(
                     wi.as_mut(), vl.as_mut(), ldvl, vr.as_mut(), ldvr as i32,
                     &mut work, lwork, &mut info);
 
-                if info < 0 {
-                  return Err(NalgebraLapackError {
-                      desc: "illegal argument in eigensystem.".to_owned()
-                  });
-                }
+                check_info!(info);
 
                 lwork = work[0] as i32;
                 let mut work = vec![0.0; lwork as usize];
@@ -214,20 +222,7 @@ macro_rules! eigensystem_impl(
                 $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, wr.as_mut(),
                     wi.as_mut(), vl.as_mut(), ldvl, vr.as_mut(), ldvr as i32,
                     &mut work, lwork, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "illegal argument {} to eigensystem()",
-                                  -info
-                                  ) } );
-                }
-                if info > 0 {
-// TODO: should figure out how to return the correct eigenvalues.
-                    return Err(NalgebraLapackError { desc: format!(
-                      "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
-                                  -info
-                                  ) } );
-                }
+                check_info!(info);
 
                 let x: Vec<Complex<$t>> = wr
                     .iter()
@@ -294,12 +289,7 @@ macro_rules! eigensystem_complex_impl(
                 $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, w.as_mut(),
                     vl.as_mut(), ldvl, vr.as_mut(), ldvr,
                     & mut work, lwork, & mut rwork, &mut info);
-
-                if info < 0 {
-                  return Err(NalgebraLapackError {
-                      desc: "illegal argument in eigensystem.".to_owned()
-                  });
-                }
+                check_info!(info);
 
                 lwork = work[0].re as i32;
                 let mut work = vec![Complex{re:0.0, im:0.0}; lwork as usize];
@@ -307,20 +297,7 @@ macro_rules! eigensystem_complex_impl(
                 $lapack_func(jobvl, jobvr, n as i32, self.as_mut_vector(), lda, w.as_mut(),
                     vl.as_mut(), ldvl, vr.as_mut(), ldvr,
                     & mut work, lwork, & mut rwork, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "illegal argument {} to eigensystem()",
-                                  -info
-                                  ) } );
-                }
-                if info > 0 {
-// TODO: should figure out how to return the correct eigenvalues.
-                    return Err(NalgebraLapackError { desc: format!(
-                      "The QR algorithm failed to compute all the eigenvalues. {} were computed.",
-                      -info
-                      )});
-                }
+                check_info!(info);
 
                 let eigen_values = w;
                 let right_eigen_vectors = DMatrix::from_row_vector(n,n,&vr.at);
@@ -356,9 +333,7 @@ macro_rules! svd_impl(
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
                     &mut s.as_mut(), u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
                     ldvt as i32, &mut work, lwork, &mut info);
-                if info < 0 {
-                  return Err(NalgebraLapackError { desc: "illegal argument to svd.".to_owned() } );
-                }
+                check_info!(info);
 
                 lwork = work[0] as i32;
                 work = vec![0.0; lwork as usize];
@@ -366,19 +341,7 @@ macro_rules! svd_impl(
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
                     &mut s.as_mut(), u.as_mut_vector(), ldu as i32, vt.as_mut_vector(),
                     ldvt as i32, &mut work, lwork, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "illegal argument {} in svd",
-                                  -info
-                                  ) } );
-                }
-                if info > 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "{} superdiagonals did not converge.",
-                                  info
-                                  ) } );
-                }
+                check_info!(info);
 
                 Ok((u, s, vt))
             }
@@ -412,36 +375,21 @@ macro_rules! svd_complex_impl(
                 let mut info = 0;
 
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
-                &mut s.as_mut(),
+                             &mut s.as_mut(),
                              u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32,
                              &mut work,
                              lwork, &mut rwork, &mut info);
-
-                if info < 0 {
-                  return Err(NalgebraLapackError { desc: "illegal argument to svd.".to_owned() } );
-                }
+                check_info!(info);
 
                 lwork = work[0].re as i32;
                 let mut work: Vec<Complex<$t>> = vec![Complex{re:0.0, im:0.0}; lwork as usize];
 
                 $lapack_func(jobu, jobvt, m as i32, n as i32, self.as_mut_vector(), lda,
-                &mut s.as_mut(),
+                             &mut s.as_mut(),
                              u.as_mut_vector(), ldu as i32, vt.as_mut_vector(), ldvt as i32,
                              &mut work,
                              lwork, &mut rwork, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "illegal argument {} in svd",
-                                  -info
-                                  ) } );
-                }
-                if info > 0 {
-                    return Err(NalgebraLapackError { desc: format!(
-                                  "{} superdiagonals did not converge.",
-                                  info
-                                  ) } );
-                }
+                check_info!(info);
 
                 Ok((u, s, vt))
             }
@@ -472,17 +420,7 @@ macro_rules! solve_impl(
 
                 $lapack_func(n as i32, nrhs, a.as_mut_vector(), lda, ipiv.as_mut(),
                     b.as_mut_vector(), ldb, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError {
-                        desc: "illegal argument to solve.".to_owned()
-                    } );
-                }
-                if info > 0 {
-                    return Err(NalgebraLapackError {
-                        desc: "cannot solve singular matrix.".to_owned()
-                    } );
-                }
+                check_info!(info);
                 Ok(b)
 
             }
@@ -516,18 +454,7 @@ macro_rules! cholesky_impl(
                 let mut info = 0;
 
                 $lapack_func(uplo, n, a.as_mut_vector(), lda, &mut info);
-
-                if info < 0 {
-                    return Err(NalgebraLapackError {
-                        desc: "illegal argument to cholesky.".to_owned()
-                    } );
-                }
-                if info > 0 {
-                    return Err(NalgebraLapackError {
-                        desc: "factorization could not be completed
-                        (matrix not positive definite?).".to_owned()
-                    });
-                }
+                check_info!(info);
 
 // zero the upper-triangular part
 
