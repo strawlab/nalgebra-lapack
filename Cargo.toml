@@ -1,6 +1,6 @@
 [package]
 name = "nalgebra-lapack"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Andrew Straw <strawman@astraw.com>"]
 description = "linear algebra operations for nalgebra matrices using LAPACK"
 license = "MIT"

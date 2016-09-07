@@ -1,6 +1,6 @@
 # Change Log
 
-## unreleased
+## [0.4.0] - 2016-09-07
 
 * Made all traits use associated types for their output type parameters. This
   simplifies usage of the traits and is consistent with the concept of
