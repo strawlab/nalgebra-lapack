@@ -1,5 +1,13 @@
 # Change Log
 
+## unreleased
+
+* Made all traits use associated types for their output type parameters. This
+  simplifies usage of the traits and is consistent with the concept of
+  associated types used as output type parameters (not input type parameters) as
+  described in [the associated type
+  RFC](https://github.com/rust-lang/rfcs/blob/master/text/0195-associated-items.md).
+
 ## [0.3.0] - 2016-09-06
 
 * Documentation is hosted at https://docs.rs/nalgebra-lapack/

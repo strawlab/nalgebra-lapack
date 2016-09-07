@@ -59,12 +59,13 @@ extern crate num;
 use std::error::Error;
 use std::fmt::{self, Display};
 use num::complex::Complex;
-use num::{Zero, One};
+use num::Zero;
 
-use nalgebra::{DMatrix, DVector, Iterable, Eye, Row};
+use nalgebra::{DMatrix, DVector, Iterable, Eye};
 
 /// A type for which eigenvalues and eigenvectors can be computed.
-pub trait Eigensystem<N> {
+pub trait Eigensystem {
+    type N;
     /// compute eigenvalues and right eigenvectors
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
@@ -75,11 +76,13 @@ pub trait Eigensystem<N> {
     ///   largest component real.
     /// * `right_eigen_vectors` - The right eigenvectors. They are contained as columns of this
     ///   matrix.
-    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<N>>, DMatrix<Complex<N>>)>;
+    fn eigensystem(mut self) -> NalgebraLapackResult<(DVector<Complex<Self::N>>, DMatrix<Complex<Self::N>>)>;
 }
 
 /// A type for which a singular value decomposition can be computed.
-pub trait SVD<V, M> {
+pub trait SVD {
+    type V;
+    type M;
     /// compute the singular value decomposition (SVD). Returns full matrices.
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
@@ -89,13 +92,13 @@ pub trait SVD<V, M> {
     /// * `u` - The left-singular vectors.
     /// * `s` - The singular values.
     /// * `vt` - The right-singular vectors.
-    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<M>, DVector<V>, DMatrix<M>)>;
+    fn svd(mut self) -> NalgebraLapackResult<(DMatrix<Self::M>, DVector<Self::V>, DMatrix<Self::M>)>;
 }
 
 /// A type for solving a linear matrix equation.
-pub trait Solve<N>: Row<DVector<N>> + Sized
-    where N: Copy + Clone + Zero + One
+pub trait Solve
 {
+    type N;
     /// solve a linear matrix equation.
     ///
     /// Given the equation `ax=b` where `a` and `b` are known, find  matrix `x`.
@@ -109,12 +112,11 @@ pub trait Solve<N>: Row<DVector<N>> + Sized
     /// # Returns
     ///
     /// * `x` - The solution to the linear equation `ax=b`.
-    fn solve(self, b: DMatrix<N>) -> NalgebraLapackResult<DMatrix<N>>;
+    fn solve(self, b: DMatrix<Self::N>) -> NalgebraLapackResult<DMatrix<Self::N>>;
 }
 
 /// A type for which the inverse can be computed.
-pub trait Inverse<N>: Solve<N>
-    where N: Copy + Clone + Zero + One
+pub trait Inverse : Solve
 {
     /// compute the (multiplicative) inverse.
     ///
@@ -123,17 +125,14 @@ pub trait Inverse<N>: Solve<N>
     /// # Returns
     ///
     /// * `inverse` - The inverted matrix.
-    fn inv(self) -> NalgebraLapackResult<DMatrix<N>> {
-        let n = self.nrows();
-        let b = DMatrix::new_identity(n);
-        self.solve(b)
-    }
+    fn inv(self) -> NalgebraLapackResult<DMatrix<<Self as Solve>::N>> where Self: std::marker::Sized;
 }
 
 /// A type for which the Cholesky decomposition can be computed.
-pub trait Cholesky<N>
-    where N: Copy
+pub trait Cholesky
 {
+    type N;
+
     /// computes the cholesky decomposition of a Hermitian positive-definite matrix.
     ///
     /// Because the input matrix may be overwritten or destroyed, it is consumed.
@@ -141,7 +140,7 @@ pub trait Cholesky<N>
     /// # Returns
     ///
     /// * `lower_triangular` - The lower triangular part of the decomposed matrix.
-    fn cholesky(self) -> NalgebraLapackResult<DMatrix<N>>;
+    fn cholesky(self) -> NalgebraLapackResult<DMatrix<Self::N>>;
 }
 
 #[derive(Debug)]
@@ -171,7 +170,8 @@ impl From<String> for NalgebraLapackError {
 
 macro_rules! eigensystem_impl(
     ($t: ty, $lapack_func: path) => (
-        impl Eigensystem<$t> for DMatrix<$t> {
+        impl Eigensystem for DMatrix<$t> {
+            type N = $t;
             fn eigensystem(mut self) ->
             NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
@@ -258,7 +258,9 @@ macro_rules! eigensystem_impl(
 
 macro_rules! eigensystem_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl Eigensystem<$t> for DMatrix<Complex<$t>> {
+        impl Eigensystem for DMatrix<Complex<$t>> {
+            type N = $t;
+
             fn eigensystem(mut self)
                 -> NalgebraLapackResult<(DVector<Complex<$t>>, DMatrix<Complex<$t>>)> {
                 let jobvl = b'N';
@@ -330,7 +332,9 @@ macro_rules! eigensystem_complex_impl(
 
 macro_rules! svd_impl(
     ($t: ty, $lapack_func: path) => (
-        impl SVD<$t,$t> for DMatrix<$t> {
+        impl SVD for DMatrix<$t> {
+            type V = $t;
+            type M = $t;
             fn svd(mut self) -> NalgebraLapackResult<(DMatrix<$t>, DVector<$t>, DMatrix<$t>)> {
                 let m = self.nrows();
                 let n = self.ncols();
@@ -384,7 +388,9 @@ macro_rules! svd_impl(
 
 macro_rules! svd_complex_impl(
     ($t: ty, $lapack_func: path) => (
-        impl SVD<$t,Complex<$t>> for DMatrix<Complex<$t>> {
+        impl SVD for DMatrix<Complex<$t>> {
+            type V=$t;
+            type M=Complex<$t>;
             fn svd(mut self)
                 -> NalgebraLapackResult<(DMatrix<Complex<$t>>, DVector<$t>, DMatrix<Complex<$t>>)> {
                 let m = self.nrows();
@@ -445,7 +451,8 @@ macro_rules! svd_complex_impl(
 
 macro_rules! solve_impl(
     ($t: ty, $lapack_func: path) => (
-        impl Solve<$t> for DMatrix<$t> {
+        impl Solve for DMatrix<$t> {
+            type N=$t;
             fn solve(self, mut b: DMatrix<$t>) -> NalgebraLapackResult<DMatrix<$t>> {
                 let mut a = self;
                 let n = a.nrows();
@@ -483,9 +490,24 @@ macro_rules! solve_impl(
     );
 );
 
+macro_rules! inverse_impl(
+    ($t: ty) => (
+        impl Inverse for DMatrix<$t> {
+            fn inv(self) -> NalgebraLapackResult<DMatrix<<Self as Solve>::N>>
+                where Self: std::marker::Sized
+            {
+                let n = self.nrows();
+                let b = DMatrix::new_identity(n);
+                self.solve(b)
+            }
+        }
+    );
+);
+
 macro_rules! cholesky_impl(
     ($t: ty, $lapack_func: path) => (
-        impl Cholesky<$t> for DMatrix<$t> {
+        impl Cholesky for DMatrix<$t> {
+            type N = $t;
             fn cholesky(self) -> NalgebraLapackResult<DMatrix<$t>> {
                 let uplo = b'L';
                 let mut a = self;
@@ -540,10 +562,10 @@ solve_impl!(f64, interface::dgesv);
 solve_impl!(Complex<f32>, interface::cgesv);
 solve_impl!(Complex<f64>, interface::zgesv);
 
-impl Inverse<f32> for DMatrix<f32> {}
-impl Inverse<f64> for DMatrix<f64> {}
-impl Inverse<Complex<f32>> for DMatrix<Complex<f32>> {}
-impl Inverse<Complex<f64>> for DMatrix<Complex<f64>> {}
+inverse_impl!(f32);
+inverse_impl!(f64);
+inverse_impl!(Complex<f32>);
+inverse_impl!(Complex<f64>);
 
 cholesky_impl!(f32, interface::spotrf);
 cholesky_impl!(f64, interface::dpotrf);
