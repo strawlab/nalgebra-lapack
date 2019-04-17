@@ -1,3 +1,7 @@
+**⚠️ Outdated** the code from this repository has been integrated into the upstream nalgebra repository. See https://github.com/rustsim/nalgebra/tree/dev/nalgebra-lapack
+
+**⚠️ This repository is for historical interest only.**
+
 # nalgebra-lapack [![Version][version-img]][version-url] [![Status][status-img]][status-url] [![Doc][doc-img]][doc-url]
 
 Rust library for linear algebra using nalgebra and LAPACK
